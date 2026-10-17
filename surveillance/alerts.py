@@ -27,13 +27,13 @@ LEVEL_ORDER = {"normal": 0, "watch": 1, "alert": 2}
 def get_as_of_date():
     """Date the analysis is based on.
 
-    Normally today. If the database has no report from the last 7 days (for
-    example an old demo database), the latest report date is used instead so
-    the dashboard still shows meaningful numbers. The pages show this date.
+    Normally today. If the newest report is older than today (for example a
+    database that was filled a few days ago), the date of the newest report is
+    used so the dashboard still shows meaningful numbers. The pages show this date.
     """
     today = timezone.localdate()
     latest = CaseReport.objects.order_by("-date_reported").values_list("date_reported", flat=True).first()
-    if latest is not None and (today - latest).days > 7:
+    if latest is not None and latest < today:
         return latest
     return today
 

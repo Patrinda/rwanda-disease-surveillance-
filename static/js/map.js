@@ -9,8 +9,17 @@
   map.setView([-1.94, 29.9], 8.25);
   map.on("click", function () { map.scrollWheelZoom.enable(); });
 
-  var streets = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "&copy; OpenStreetMap contributors", opacity: 0.55
+  var streets = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+    subdomains: "abcd", maxZoom: 19, opacity: 0.6,
+    attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
+  });
+  streets.on("tileerror", function () {
+    var st = document.getElementById("streetToggle");
+    if (st && st.checked) {
+      st.checked = false;
+      map.removeLayer(streets);
+      st.parentNode.lastChild.textContent = " Streets need internet";
+    }
   });
 
   var state = { data: null, byName: {}, metric: "total", geo: null, geoJson: null, markers: L.layerGroup(), labels: L.layerGroup(), thresholds: [] };
