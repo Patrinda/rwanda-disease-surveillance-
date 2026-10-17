@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Outbreak Map{% endblock %}
+{% block page_title %}Outbreak Map{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active" aria-current="page">Outbreak Map</li>{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'vendor/leaflet/leaflet.css' %}">{% endblock %}
+
+{% block content %}
+<form method="get" class="card filter-bar mb-3" id="mapFilters">
+  <div class="card-body py-3">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-3 col-6">
+        <label class="form-label" for="m-disease">Disease</label>
+        <select name="disease" id="m-disease" class="form-select form-select-sm">
+          <option value="">All diseases</option>
+          {% for d in diseases %}<option value="{{ d.pk }}" {% if selected == d.pk|stringformat:"s" %}selected{% endif %}>{{ d.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2 col-6">
+        <label class="form-label" for="m-from">From</label>
+        <input type="date" name="date_from" id="m-from" class="form-control form-control-sm">
+      </div>
+      <div class="col-md-2 col-6">
+        <label class="form-label" for="m-to">To</label>
+        <input type="date" name="date_to" id="m-to" class="form-control form-control-sm">
+      </div>
+      <div class="col-md-2 col-6">
+        <label class="form-label" for="m-metric">Colour by</label>
+        <select id="m-metric" class="form-select form-select-sm">
+          <option value="total">All cases</option>
+          <option value="active">Active cases</option>
+          <option value="deceased">Deaths</option>
+        </select>
+      </div>
+      <div class="col-md-3 d-flex gap-2">
+        <button class="btn btn-primary btn-sm flex-fill" type="submit"><i class="bi bi-funnel-fill me-1"></i> Apply</button>
+        <a class="btn btn-outline-secondary btn-sm flex-fill" href="{% url 'outbreak_map' %}">Reset</a>
+      </div>
+    </div>
+  </div>
+</form>
+
+<div class="row g-3">
+  <div class="col-xl-9">
+    <div class="card rw-map-card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0"><i class="bi bi-geo-alt-fill me-1"></i> Cases by district</h3>
+        <span class="text-secondary small">Data up to {{ as_of|date:"j F Y" }}</span>
+      </div>
+      <div class="card-body">
+        <div id="rwMap" role="img" aria-label="Map of Rwanda districts coloured by number of reported cases"></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-3">
+    <div class="card mb-3">
+      <div class="card-header"><h3 class="card-title mb-0"><i class="bi bi-exclamation-triangle-fill me-1 text-danger"></i> Active signals</h3></div>
+      <div class="card-body p-2" id="signalList"><p class="text-secondary small m-2">Loading...</p></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3 class="card-title mb-0"><i class="bi bi-bar-chart-fill me-1"></i> Top districts</h3></div>
+      <div class="card-body" id="topList"><p class="text-secondary small">Loading...</p></div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'vendor/leaflet/leaflet.js' %}"></script>
+<script>
+  window.RW_MAP = {
+    dataUrl: "{% url 'map_data' %}",
+    geoUrl: "{% static 'geo/rwanda_districts.geojson' %}"
+  };
+</script>
+<script src="{% static 'js/map.js' %}"></script>
+{% endblock %}

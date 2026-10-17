@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Patients{% endblock %}
+{% block page_title %}Patients{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active" aria-current="page">Patients</li>{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <form method="get" class="row g-2 align-items-center">
+      <div class="col-md-6"><input type="search" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Search by name, code or phone"></div>
+      <div class="col-md-6 d-flex gap-2">
+        <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-search me-1"></i> Search</button>
+        <a href="{% url 'patient_list' %}" class="btn btn-sm btn-outline-secondary">Reset</a>
+        {% if can_add_data %}<a href="{% url 'patient_add' %}" class="btn btn-sm btn-success ms-auto"><i class="bi bi-person-plus-fill me-1"></i> Register patient</a>{% endif %}
+      </div>
+    </form>
+  </div>
+  <div class="card-body p-0 table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr><th>Code</th><th>Name</th><th>Age</th><th>Sex</th><th>District</th><th class="text-end">Reports</th><th style="width:150px">Actions</th></tr></thead>
+      <tbody>
+      {% for p in patients %}
+        <tr>
+          <td><code>{{ p.patient_code }}</code></td>
+          <td><a class="fw-semibold text-decoration-none" href="{% url 'patient_detail' p.pk %}">{{ p.full_name }}</a></td>
+          <td>{{ p.age }}</td><td>{{ p.get_gender_display }}</td><td>{{ p.district.name }}</td>
+          <td class="text-end">{{ p.case_total }}</td>
+          <td>
+            <a href="{% url 'patient_detail' p.pk %}" class="btn btn-sm btn-outline-secondary" title="View"><i class="bi bi-eye"></i></a>
+            <a href="{% url 'patient_edit' p.pk %}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="bi bi-pencil-square"></i></a>
+            {% if is_admin_role %}<a href="{% url 'patient_delete' p.pk %}" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash3"></i></a>{% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="text-center text-secondary py-4">No patients found in your district.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-footer">{% include "partials/pagination.html" %}</div>
+</div>
+{% endblock %}

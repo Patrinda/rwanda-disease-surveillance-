@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% load static ui_tags %}
+{% block title %}{{ district.name }}{% endblock %}
+{% block page_title %}{{ district.name }} District{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item"><a href="{% url 'district_list' %}">Districts</a></li><li class="breadcrumb-item active">{{ district.name }}</li>{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-lg-3 col-6"><div class="small-box box-indigo"><div class="inner"><h3>{{ numbers.total }}</h3><p>Case reports</p></div><i class="bi bi-clipboard2-pulse-fill small-box-icon"></i></div></div>
+  <div class="col-lg-3 col-6"><div class="small-box box-orange"><div class="inner"><h3>{{ numbers.active }}</h3><p>Active cases</p></div><i class="bi bi-activity small-box-icon"></i></div></div>
+  <div class="col-lg-3 col-6"><div class="small-box box-teal"><div class="inner"><h3>{{ numbers.recovery_rate }}%</h3><p>Recovery rate</p></div><i class="bi bi-heart-pulse-fill small-box-icon"></i></div></div>
+  <div class="col-lg-3 col-6"><div class="small-box box-red"><div class="inner"><h3>{{ alerts|length }}</h3><p>Alerts and watches</p></div><i class="bi bi-exclamation-triangle-fill small-box-icon"></i></div></div>
+</div>
+
+<div class="row">
+  <div class="col-lg-4">
+    <div class="card mb-3">
+      <div class="card-header"><h3 class="card-title">About</h3></div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-5">Province</dt><dd class="col-7">{{ district.province.name }}</dd>
+          <dt class="col-5">Centre point</dt><dd class="col-7">{{ district.latitude }}, {{ district.longitude }}</dd>
+          <dt class="col-5">Deaths</dt><dd class="col-7">{{ numbers.deceased }}</dd>
+          <dt class="col-5">Open outbreaks</dt><dd class="col-7">{{ outbreaks|length }}</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="card mb-3">
+      <div class="card-header"><h3 class="card-title">Alerts and watches</h3></div>
+      <div class="card-body d-grid gap-2">
+        {% for a in alerts %}<div class="alert-item {{ a.level }}-level"><div class="d-flex justify-content-between"><strong>{{ a.disease.name }}</strong>{% level_badge a.level %}</div><small class="text-secondary">{{ a.current }} this week, usual {{ a.baseline }}</small></div>
+        {% empty %}<p class="text-secondary mb-0">Nothing above the usual level this week.</p>{% endfor %}
+        {% for o in outbreaks %}<a href="{% url 'outbreak_detail' o.pk %}" class="text-decoration-none"><i class="bi bi-broadcast text-danger me-1"></i> Open outbreak: {{ o.disease.name }}</a>{% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="card mb-3">
+      <div class="card-header"><h3 class="card-title">Cases per month (last 12 months)</h3></div>
+      <div class="card-body"><div class="chart-wrap"><canvas id="districtTrend" role="img" aria-label="Line chart of monthly cases in this district"></canvas></div></div>
+    </div>
+  </div>
+</div>
+<div class="row">
+  <div class="col-lg-5">
+    <div class="card mb-3">
+      <div class="card-header"><h3 class="card-title">Diseases reported</h3></div>
+      <div class="card-body"><div class="chart-wrap"><canvas id="districtDiseases" role="img" aria-label="Bar chart of diseases reported in this district"></canvas></div></div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card mb-3">
+      <div class="card-header"><h3 class="card-title">Recent reports</h3></div>
+      <div class="card-body p-0 table-responsive">
+        <table class="table table-sm table-hover mb-0"><thead><tr><th>Patient</th><th>Disease</th><th>Status</th><th>Date</th></tr></thead><tbody>
+          {% for r in recent_reports %}<tr><td><a href="{% url 'report_detail' r.pk %}" class="text-decoration-none">{{ r.patient.full_name }}</a></td><td>{{ r.disease.name }}</td><td>{% status_badge r.status r.get_status_display %}</td><td>{{ r.date_reported|date:"d M Y" }}</td></tr>
+          {% empty %}<tr><td colspan="4" class="text-center text-secondary py-4">No reports visible for this district.</td></tr>{% endfor %}
+        </tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+{{ chart|json_script:"district-chart" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'vendor/chartjs/chart.umd.js' %}"></script>
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById("district-chart").textContent);
+  var dark = document.documentElement.getAttribute("data-bs-theme") === "dark";
+  var blue = dark ? "#3987e5" : "#2a78d6", ink = dark ? "#c3c2b7" : "#52514e", grid = dark ? "rgba(255,255,255,.09)" : "rgba(0,0,0,.07)";
+  Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+  Chart.defaults.color = ink;
+  var common = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } };
+  new Chart(document.getElementById("districtTrend"), {
+    type: "line",
+    data: { labels: data.trend_labels, datasets: [{ label: "Cases", data: data.trend_data, borderColor: blue, backgroundColor: blue, borderWidth: 2, tension: 0.3, pointRadius: 0, pointHoverRadius: 5 }] },
+    options: Object.assign({ interaction: { mode: "index", intersect: false }, scales: { x: { grid: { display: false }, border: { display: false } }, y: { beginAtZero: true, grid: { color: grid }, border: { display: false }, ticks: { precision: 0 } } } }, common),
+  });
+  new Chart(document.getElementById("districtDiseases"), {
+    type: "bar",
+    data: { labels: data.disease_labels, datasets: [{ label: "Reports", data: data.disease_data, backgroundColor: blue, borderRadius: 4, maxBarThickness: 18 }] },
+    options: Object.assign({ indexAxis: "y", scales: { x: { beginAtZero: true, grid: { color: grid }, border: { display: false }, ticks: { precision: 0 } }, y: { grid: { display: false }, border: { display: false } } } }, common),
+  });
+})();
+</script>
+{% endblock %}

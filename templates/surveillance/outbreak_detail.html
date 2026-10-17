@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load ui_tags %}
+{% block title %}Outbreak{% endblock %}
+{% block page_title %}{{ outbreak.disease.name }} in {{ outbreak.district.name }}{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item"><a href="{% url 'outbreak_list' %}">Alerts</a></li><li class="breadcrumb-item active">Outbreak #{{ outbreak.pk }}</li>{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-lg-4">
+    <div class="card mb-3">
+      <div class="card-header"><h3 class="card-title">Outbreak record</h3></div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-5">Status</dt><dd class="col-7">{% level_badge outbreak.status outbreak.get_status_display %}</dd>
+          <dt class="col-5">Level</dt><dd class="col-7">{% level_badge outbreak.level outbreak.get_level_display %}</dd>
+          <dt class="col-5">Started</dt><dd class="col-7">{{ outbreak.start_date|date:"d M Y" }}</dd>
+          <dt class="col-5">Ended</dt><dd class="col-7">{{ outbreak.end_date|date:"d M Y"|default:"-" }}</dd>
+          <dt class="col-5">Declared by</dt><dd class="col-7">{{ outbreak.declared_by.username|default:"-" }}</dd>
+          <dt class="col-5">Detected by</dt><dd class="col-7">{% if outbreak.auto_detected %}Automatic alert{% else %}Officer{% endif %}</dd>
+          <dt class="col-5">Linked cases</dt><dd class="col-7">{{ linked_total }}</dd>
+        </dl>
+        {% if outbreak.notes %}<hr><p class="mb-0">{{ outbreak.notes }}</p>{% endif %}
+      </div>
+      {% if can_declare and outbreak.is_open %}
+      <div class="card-footer">
+        <form method="post" action="{% url 'outbreak_close' outbreak.pk %}">{% csrf_token %}
+          <button type="submit" class="btn btn-outline-danger w-100"><i class="bi bi-lock-fill me-1"></i> Close this outbreak</button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="card mb-3">
+      <div class="card-header"><h3 class="card-title">Linked case reports</h3></div>
+      <div class="card-body p-0 table-responsive">
+        <table class="table table-sm table-hover mb-0"><thead><tr><th>Patient</th><th>Status</th><th>Reported</th><th></th></tr></thead><tbody>
+          {% for c in linked_cases|slice:":30" %}<tr><td>{{ c.patient.full_name }} <small class="text-secondary">{{ c.patient.patient_code }}</small></td><td>{% status_badge c.status c.get_status_display %}</td><td>{{ c.date_reported|date:"d M Y" }}</td><td><a href="{% url 'report_detail' c.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a></td></tr>
+          {% empty %}<tr><td colspan="4" class="text-center text-secondary py-4">No linked reports are visible to you.</td></tr>{% endfor %}
+        </tbody></table>
+      </div>
+      <div class="card-footer small text-secondary">The first 30 reports are shown.</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

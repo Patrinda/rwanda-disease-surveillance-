@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}My profile{% endblock %}
+{% block page_title %}My profile{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Profile</li>{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header"><h3 class="card-title"><i class="bi bi-person-badge-fill me-1"></i> Account</h3></div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Username</dt><dd class="col-sm-8">{{ user.username }}</dd>
+          <dt class="col-sm-4">Name</dt><dd class="col-sm-8">{{ user.get_full_name|default:"-" }}</dd>
+          <dt class="col-sm-4">Role</dt><dd class="col-sm-8">{{ role_label }}</dd>
+          <dt class="col-sm-4">District</dt><dd class="col-sm-8">{{ user.profile.district|default:"All districts" }}</dd>
+          <dt class="col-sm-4">Last sign in</dt><dd class="col-sm-8">{{ user.last_login|date:"d M Y, H:i"|default:"-" }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header"><h3 class="card-title"><i class="bi bi-pencil-square me-1"></i> Edit details</h3></div>
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="card-body">{% include "partials/form_fields.html" %}</div>
+        <div class="card-footer"><button class="btn btn-primary" type="submit"><i class="bi bi-check-lg me-1"></i> Save changes</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

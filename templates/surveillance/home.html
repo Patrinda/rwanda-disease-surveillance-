@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Home{% endblock %}
+{% block page_title %}Welcome{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active" aria-current="page">Home</li>{% endblock %}
+
+{% block content %}
+<div class="hero mb-4">
+  <h2>Disease Surveillance and Outbreak Monitoring for Rwanda</h2>
+  <p class="mb-4">Health workers record disease cases by district. The system adds them up, compares each week with the usual level and raises an alert when a disease rises faster than expected. This public page only shows national totals. Patient records are available after you sign in.</p>
+  {% if user.is_authenticated and role %}
+    <a href="{% url 'dashboard' %}" class="btn btn-light btn-lg me-2"><i class="bi bi-speedometer2 me-1"></i> Open the dashboard</a>
+    <a href="{% url 'outbreak_map' %}" class="btn btn-outline-light btn-lg"><i class="bi bi-map-fill me-1"></i> View the map</a>
+  {% else %}
+    <a href="{% url 'login' %}" class="btn btn-light btn-lg"><i class="bi bi-box-arrow-in-right me-1"></i> Sign in</a>
+  {% endif %}
+</div>
+
+<div class="row">
+  <div class="col-lg-3 col-6">
+    <div class="small-box box-blue"><div class="inner"><h3>{{ disease_count }}</h3><p>Diseases monitored</p></div><i class="bi bi-virus small-box-icon"></i></div>
+  </div>
+  <div class="col-lg-3 col-6">
+    <div class="small-box box-teal"><div class="inner"><h3>{{ district_count }}</h3><p>Districts covered</p></div><i class="bi bi-geo-alt-fill small-box-icon"></i></div>
+  </div>
+  <div class="col-lg-3 col-6">
+    <div class="small-box box-indigo"><div class="inner"><h3>{{ reports_30_days }}</h3><p>Reports in the last 30 days</p></div><i class="bi bi-clipboard2-pulse-fill small-box-icon"></i></div>
+  </div>
+  <div class="col-lg-3 col-6">
+    <div class="small-box box-red"><div class="inner"><h3>{{ alert_count }}</h3><p>Districts on alert this week</p></div><i class="bi bi-exclamation-triangle-fill small-box-icon"></i></div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-4"><div class="card h-100"><div class="card-body">
+    <h5><i class="bi bi-1-circle-fill text-primary me-2"></i>Report</h5>
+    <p class="mb-0 text-secondary">Facility staff register a patient and file a case report for a disease in a district. Every report is checked for valid dates, ages and duplicates.</p>
+  </div></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-body">
+    <h5><i class="bi bi-2-circle-fill text-primary me-2"></i>Detect</h5>
+    <p class="mb-0 text-secondary">Each week's cases are compared with the average of the four weeks before. A big jump creates a Watch or an Alert for that disease and district.</p>
+  </div></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-body">
+    <h5><i class="bi bi-3-circle-fill text-primary me-2"></i>Respond</h5>
+    <p class="mb-0 text-secondary">District officers review the alert on the map and dashboard, declare an outbreak and follow it until it is closed.</p>
+  </div></div></div>
+</div>
+<p class="text-secondary small mt-3 mb-0">Figures as of {{ as_of|date:"d M Y" }}. All records in this demonstration are fictional.</p>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% load ui_tags %}
+{% block title %}Case reports{% endblock %}
+{% block page_title %}Case reports{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active" aria-current="page">Reports</li>{% endblock %}
+{% block content %}
+<form method="get" class="card filter-bar mb-3">
+  <div class="card-body py-3">
+    <div class="row g-2 align-items-end">
+      <div class="col-lg-3 col-md-6"><label class="form-label" for="r-q">Search patient</label><input type="search" id="r-q" name="q" value="{{ f.q }}" class="form-control form-control-sm" placeholder="Name or code"></div>
+      <div class="col-lg-3 col-md-6"><label class="form-label" for="r-disease">Disease</label>
+        <select name="disease" id="r-disease" class="form-select form-select-sm"><option value="">All</option>
+          {% for d in diseases %}<option value="{{ d.pk }}" {% if f.disease == d.pk|stringformat:"s" %}selected{% endif %}>{{ d.name }}</option>{% endfor %}</select></div>
+      <div class="col-lg-2 col-md-4"><label class="form-label" for="r-district">District</label>
+        <select name="district" id="r-district" class="form-select form-select-sm"><option value="">All</option>
+          {% for d in districts %}<option value="{{ d.pk }}" {% if f.district == d.pk|stringformat:"s" %}selected{% endif %}>{{ d.name }}</option>{% endfor %}</select></div>
+      <div class="col-lg-2 col-md-4"><label class="form-label" for="r-status">Status</label>
+        <select name="status" id="r-status" class="form-select form-select-sm"><option value="">All</option>
+          {% for value, label in statuses %}<option value="{{ value }}" {% if f.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+      <div class="col-lg-2 col-md-4"><label class="form-label" for="r-type">Case type</label>
+        <select name="case_type" id="r-type" class="form-select form-select-sm"><option value="">All</option>
+          {% for value, label in case_types %}<option value="{{ value }}" {% if f.case_type == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+      <div class="col-lg-2 col-md-4"><label class="form-label" for="r-from">From</label><input type="date" id="r-from" name="date_from" value="{{ f.date_from }}" class="form-control form-control-sm"></div>
+      <div class="col-lg-2 col-md-4"><label class="form-label" for="r-to">To</label><input type="date" id="r-to" name="date_to" value="{{ f.date_to }}" class="form-control form-control-sm"></div>
+      <div class="col-lg-8 d-flex gap-2 flex-wrap">
+        <button class="btn btn-primary btn-sm" type="submit"><i class="bi bi-funnel-fill me-1"></i> Filter</button>
+        <a class="btn btn-outline-secondary btn-sm" href="{% url 'report_list' %}">Reset</a>
+        {% if can_export %}<a class="btn btn-outline-success btn-sm" href="{% url 'report_export' %}?{{ querystring }}"><i class="bi bi-download me-1"></i> Export CSV</a>{% endif %}
+        {% if can_add_data %}<a class="btn btn-success btn-sm ms-auto" href="{% url 'report_add' %}"><i class="bi bi-plus-lg me-1"></i> New report</a>{% endif %}
+      </div>
+    </div>
+  </div>
+</form>
+
+<div class="card">
+  <div class="card-header"><h3 class="card-title">{{ page_obj.paginator.count }} report{{ page_obj.paginator.count|pluralize }}</h3></div>
+  <div class="card-body p-0 table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr><th>#</th><th>Patient</th><th>Disease</th><th>District</th><th>Type</th><th>Status</th><th>Reported</th><th style="width:150px">Actions</th></tr></thead>
+      <tbody>
+      {% for r in reports %}
+        <tr>
+          <td>{{ r.pk }}</td>
+          <td><a class="fw-semibold text-decoration-none" href="{% url 'report_detail' r.pk %}">{{ r.patient.full_name }}</a><br><small class="text-secondary">{{ r.patient.patient_code }}</small></td>
+          <td>{{ r.disease.name }}</td><td>{{ r.district.name }}</td><td>{{ r.get_case_type_display }}</td>
+          <td>{% status_badge r.status r.get_status_display %}</td>
+          <td>{{ r.date_reported|date:"d M Y" }}</td>
+          <td>
+            <a href="{% url 'report_detail' r.pk %}" class="btn btn-sm btn-outline-secondary" title="View"><i class="bi bi-eye"></i></a>
+            <a href="{% url 'report_edit' r.pk %}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="bi bi-pencil-square"></i></a>
+            {% if is_admin_role %}<a href="{% url 'report_delete' r.pk %}" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash3"></i></a>{% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8" class="text-center text-secondary py-4">No reports match these filters.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-footer">{% include "partials/pagination.html" %}</div>
+</div>
+{% endblock %}

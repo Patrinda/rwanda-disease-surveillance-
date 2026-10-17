@@ -1,0 +1,6 @@
+# Only needed to rebuild the map file from the shapefile (tools/build_geojson.py)
+pyshp
+pyproj
+scipy
+numpy
+shapely

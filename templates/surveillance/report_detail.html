@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load ui_tags %}
+{% block title %}Report {{ report.pk }}{% endblock %}
+{% block page_title %}Case report #{{ report.pk }}{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item"><a href="{% url 'report_list' %}">Reports</a></li><li class="breadcrumb-item active">#{{ report.pk }}</li>{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-lg-8">
+    <div class="card mb-3">
+      <div class="card-header"><h3 class="card-title">{{ report.disease.name }} in {{ report.district.name }}</h3>
+        <div class="card-tools">
+          {% if can_edit %}<a href="{% url 'report_edit' report.pk %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil-square"></i> Edit</a>{% endif %}
+          {% if is_admin_role %}<a href="{% url 'report_delete' report.pk %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash3"></i> Delete</a>{% endif %}
+        </div></div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Patient</dt><dd class="col-sm-8"><a href="{% url 'patient_detail' report.patient.pk %}" class="text-decoration-none">{{ report.patient.full_name }}</a> ({{ report.patient.patient_code }}, {{ report.patient.age }} years, {{ report.patient.get_gender_display }})</dd>
+          <dt class="col-sm-4">Disease</dt><dd class="col-sm-8"><a href="{% url 'disease_detail' report.disease.pk %}" class="text-decoration-none">{{ report.disease.name }}</a></dd>
+          <dt class="col-sm-4">District</dt><dd class="col-sm-8"><a href="{% url 'district_detail' report.district.pk %}" class="text-decoration-none">{{ report.district.name }}</a></dd>
+          <dt class="col-sm-4">Case type</dt><dd class="col-sm-8">{{ report.get_case_type_display }}</dd>
+          <dt class="col-sm-4">Status</dt><dd class="col-sm-8">{% status_badge report.status report.get_status_display %}</dd>
+          <dt class="col-sm-4">Symptom onset</dt><dd class="col-sm-8">{{ report.date_onset|date:"d M Y" }}</dd>
+          <dt class="col-sm-4">Reported on</dt><dd class="col-sm-8">{{ report.date_reported|date:"d M Y" }}</dd>
+          <dt class="col-sm-4">Reported by</dt><dd class="col-sm-8">{{ report.reported_by.username|default:"-" }}</dd>
+          <dt class="col-sm-4">Notes</dt><dd class="col-sm-8">{{ report.notes|default:"-"|linebreaksbr }}</dd>
+          <dt class="col-sm-4">Last updated</dt><dd class="col-sm-8">{{ report.updated_at|date:"d M Y, H:i" }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card mb-3">
+      <div class="card-header"><h3 class="card-title">Linked outbreaks</h3></div>
+      <div class="card-body">
+        {% for o in outbreaks %}<a href="{% url 'outbreak_detail' o.pk %}" class="d-block text-decoration-none mb-1">{{ o.disease.name }} in {{ o.district.name }} {% level_badge o.status o.get_status_display %}</a>
+        {% empty %}<p class="text-secondary mb-0">This report is not linked to an outbreak.</p>{% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

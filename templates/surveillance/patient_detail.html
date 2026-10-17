@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load ui_tags %}
+{% block title %}{{ patient.full_name }}{% endblock %}
+{% block page_title %}{{ patient.full_name }}{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item"><a href="{% url 'patient_list' %}">Patients</a></li><li class="breadcrumb-item active">{{ patient.patient_code }}</li>{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-lg-4">
+    <div class="card mb-3">
+      <div class="card-header"><h3 class="card-title">Patient</h3>
+        <div class="card-tools"><a href="{% url 'patient_edit' patient.pk %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil-square"></i> Edit</a></div></div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-5">Code</dt><dd class="col-7"><code>{{ patient.patient_code }}</code></dd>
+          <dt class="col-5">Age</dt><dd class="col-7">{{ patient.age }}</dd>
+          <dt class="col-5">Sex</dt><dd class="col-7">{{ patient.get_gender_display }}</dd>
+          <dt class="col-5">Phone</dt><dd class="col-7">{{ patient.phone|default:"-" }}</dd>
+          <dt class="col-5">District</dt><dd class="col-7"><a href="{% url 'district_detail' patient.district.pk %}" class="text-decoration-none">{{ patient.district.name }}</a></dd>
+          <dt class="col-5">Registered</dt><dd class="col-7">{{ patient.created_at|date:"d M Y" }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="card mb-3">
+      <div class="card-header"><h3 class="card-title">Case history</h3>
+        <div class="card-tools"><a href="{% url 'report_add' %}?patient={{ patient.pk }}" class="btn btn-sm btn-success"><i class="bi bi-plus-lg"></i> New report</a></div></div>
+      <div class="card-body p-0 table-responsive">
+        <table class="table mb-0"><thead><tr><th>Disease</th><th>Type</th><th>Status</th><th>Onset</th><th>Reported</th><th></th></tr></thead><tbody>
+          {% for c in cases %}<tr>
+            <td>{{ c.disease.name }}</td><td>{{ c.get_case_type_display }}</td><td>{% status_badge c.status c.get_status_display %}</td>
+            <td>{{ c.date_onset|date:"d M Y" }}</td><td>{{ c.date_reported|date:"d M Y" }}</td>
+            <td><a href="{% url 'report_detail' c.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a></td></tr>
+          {% empty %}<tr><td colspan="6" class="text-center text-secondary py-4">No case reports for this patient yet.</td></tr>{% endfor %}
+        </tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

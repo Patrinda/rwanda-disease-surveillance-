@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% load static ui_tags %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- ===== Filters ===== -->
+<form method="get" class="card filter-bar mb-3">
+  <div class="card-body py-3">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-3 col-6">
+        <label class="form-label" for="f-disease">Disease</label>
+        <select name="disease" id="f-disease" class="form-select form-select-sm">
+          <option value="">All diseases</option>
+          {% for d in diseases %}<option value="{{ d.pk }}" {% if filters.disease.pk == d.pk %}selected{% endif %}>{{ d.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2 col-6">
+        <label class="form-label" for="f-province">Province</label>
+        <select name="province" id="f-province" class="form-select form-select-sm">
+          <option value="">All provinces</option>
+          {% for p in provinces %}<option value="{{ p.pk }}" {% if filters.province.pk == p.pk %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2 col-6">
+        <label class="form-label" for="f-from">From</label>
+        <input type="date" name="date_from" id="f-from" class="form-control form-control-sm" value="{{ filters.date_from|date:'Y-m-d' }}">
+      </div>
+      <div class="col-md-2 col-6">
+        <label class="form-label" for="f-to">To</label>
+        <input type="date" name="date_to" id="f-to" class="form-control form-control-sm" value="{{ filters.date_to|date:'Y-m-d' }}">
+      </div>
+      <div class="col-md-3 d-flex gap-2">
+        <button class="btn btn-primary btn-sm flex-fill" type="submit"><i class="bi bi-funnel-fill me-1"></i> Apply</button>
+        <a class="btn btn-outline-secondary btn-sm flex-fill" href="{% url 'dashboard' %}">Reset</a>
+      </div>
+    </div>
+  </div>
+</form>
+
+<p class="text-secondary small mb-3">
+  <i class="bi bi-calendar-check me-1"></i> Data as of <strong>{{ as_of|date:"d M Y" }}</strong>.
+  {% if is_stale %}<span class="text-warning-emphasis">The latest report in the database is older than a week, so this date is used. Run <code>python manage.py seed_demo --reset</code> to refresh the demo data.</span>{% endif %}
+</p>
+
+<!-- ===== Alert banner ===== -->
+{% if alert_level_count %}
+<div class="alert alert-danger d-flex align-items-start gap-3" role="alert">
+  <i class="bi bi-exclamation-octagon-fill fs-3"></i>
+  <div class="flex-fill">
+    <strong>{{ alert_level_count }} alert{{ alert_level_count|pluralize }} this week.</strong>
+    {% for a in alerts|slice:":3" %}{% if a.level == 'alert' %}<span class="d-block">{{ a.disease.name }} in {{ a.district.name }}: {{ a.current }} cases this week, usual level {{ a.baseline }}.</span>{% endif %}{% endfor %}
+  </div>
+  <a href="{% url 'outbreak_list' %}" class="btn btn-sm btn-outline-danger align-self-center">Review alerts</a>
+</div>
+{% endif %}
+
+<!-- ===== Summary cards ===== -->
+<div class="row">
+  <div class="col-lg-3 col-6">
+    <div class="small-box box-blue">
+      <div class="inner"><h3>{{ disease_count }}</h3><p>Registered diseases</p></div>
+      <i class="bi bi-virus small-box-icon"></i>
+      <a href="{% url 'disease_list' %}" class="small-box-footer link-underline-opacity-0">View diseases <i class="bi bi-arrow-right-circle-fill ms-1"></i></a>
+    </div>
+  </div>
+  <div class="col-lg-3 col-6">
+    <div class="small-box box-teal">
+      <div class="inner"><h3>{{ patient_count }}</h3><p>Registered patients</p></div>
+      <i class="bi bi-people-fill small-box-icon"></i>
+      <a href="{% url 'patient_list' %}" class="small-box-footer link-underline-opacity-0">View patients <i class="bi bi-arrow-right-circle-fill ms-1"></i></a>
+    </div>
+  </div>
+  <div class="col-lg-3 col-6">
+    <div class="small-box box-indigo">
+      <div class="inner"><h3>{{ numbers.total }}</h3><p>Case reports{% if filters.disease or filters.province or filters.date_from or filters.date_to %} (filtered){% endif %}</p></div>
+      <i class="bi bi-clipboard2-pulse-fill small-box-icon"></i>
+      <a href="{% url 'report_list' %}" class="small-box-footer link-underline-opacity-0">View reports <i class="bi bi-arrow-right-circle-fill ms-1"></i></a>
+    </div>
+  </div>
+  <div class="col-lg-3 col-6">
+    <div class="small-box box-orange">
+      <div class="inner"><h3>{{ numbers.active }}</h3><p>Active cases</p></div>
+      <i class="bi bi-activity small-box-icon"></i>
+      <a href="{% url 'report_list' %}?status=active" class="small-box-footer link-underline-opacity-0">See active cases <i class="bi bi-arrow-right-circle-fill ms-1"></i></a>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-3 col-6">
+    <div class="info-box mb-3">
+      <span class="info-box-icon icon-red"><i class="bi bi-broadcast"></i></span>
+      <div class="info-box-content"><span class="info-box-text">Open outbreaks</span><span class="info-box-number">{{ open_outbreaks }}</span></div>
+    </div>
+  </div>
+  <div class="col-lg-3 col-6">
+    <div class="info-box mb-3">
+      <span class="info-box-icon icon-amber"><i class="bi bi-exclamation-triangle-fill"></i></span>
+      <div class="info-box-content"><span class="info-box-text">Alerts and watches</span><span class="info-box-number">{{ alerts|length }}</span></div>
+    </div>
+  </div>
+  <div class="col-lg-3 col-6">
+    <div class="info-box mb-3">
+      <span class="info-box-icon icon-green"><i class="bi bi-heart-pulse-fill"></i></span>
+      <div class="info-box-content">
+        <span class="info-box-text">Recovery rate</span><span class="info-box-number">{{ numbers.recovery_rate }}%</span>
+        <div class="progress" role="progressbar" aria-label="Recovery rate" aria-valuenow="{{ numbers.recovery_rate }}" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar bg-success" style="width: {{ numbers.recovery_rate }}%"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-3 col-6">
+    <div class="info-box mb-3">
+      <span class="info-box-icon icon-slate"><i class="bi bi-percent"></i></span>
+      <div class="info-box-content"><span class="info-box-text">Case fatality rate</span><span class="info-box-number">{{ numbers.fatality_rate }}%</span><span class="progress-description text-secondary small">{{ numbers.deceased }} deaths</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Charts ===== -->
+<div class="row">
+  <div class="col-lg-8">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h3 class="card-title"><i class="bi bi-graph-up me-1"></i> Cases per month</h3>
+        <div class="card-tools"><button type="button" class="btn btn-sm btn-outline-secondary" data-table-toggle="trend">Table</button></div>
+      </div>
+      <div class="card-body">
+        <div class="chart-wrap"><canvas id="trendChart" role="img" aria-label="Line chart of monthly case reports"></canvas></div>
+        <div class="table-view mt-2" id="table-trend"></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h3 class="card-title"><i class="bi bi-pie-chart-fill me-1"></i> Disease distribution</h3>
+        <div class="card-tools"><button type="button" class="btn btn-sm btn-outline-secondary" data-table-toggle="disease">Table</button></div>
+      </div>
+      <div class="card-body">
+        <div class="chart-wrap"><canvas id="diseaseChart" role="img" aria-label="Doughnut chart of cases by disease"></canvas></div>
+        <div class="table-view mt-2" id="table-disease"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-6">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h3 class="card-title"><i class="bi bi-bar-chart-fill me-1"></i> Top 10 districts by cases</h3>
+        <div class="card-tools"><button type="button" class="btn btn-sm btn-outline-secondary" data-table-toggle="district">Table</button></div>
+      </div>
+      <div class="card-body">
+        <div class="chart-wrap"><canvas id="districtChart" role="img" aria-label="Bar chart of the ten districts with most cases"></canvas></div>
+        <div class="table-view mt-2" id="table-district"></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h3 class="card-title"><i class="bi bi-gender-ambiguous me-1"></i> Cases by age group and sex</h3>
+        <div class="card-tools"><button type="button" class="btn btn-sm btn-outline-secondary" data-table-toggle="age">Table</button></div>
+      </div>
+      <div class="card-body">
+        <div class="chart-wrap"><canvas id="ageChart" role="img" aria-label="Grouped bar chart of cases by age group and sex"></canvas></div>
+        <div class="table-view mt-2" id="table-age"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Tables ===== -->
+<div class="row">
+  <div class="col-lg-7">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h3 class="card-title"><i class="bi bi-clock-history me-1"></i> Recent reports</h3>
+        <div class="card-tools"><a href="{% url 'report_list' %}" class="btn btn-sm btn-outline-primary">All reports</a></div>
+      </div>
+      <div class="card-body p-0 table-responsive">
+        <table class="table table-hover mb-0">
+          <thead><tr><th>Patient</th><th>Disease</th><th>District</th><th>Status</th><th>Date</th></tr></thead>
+          <tbody>
+          {% for r in recent_reports %}
+            <tr>
+              <td><a href="{% url 'report_detail' r.pk %}" class="fw-semibold text-decoration-none">{{ r.patient.full_name }}</a><br><small class="text-secondary">{{ r.patient.patient_code }}</small></td>
+              <td>{{ r.disease.name }}</td>
+              <td>{{ r.district.name }}</td>
+              <td>{% status_badge r.status r.get_status_display %}</td>
+              <td>{{ r.date_reported|date:"d M Y" }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="text-center text-secondary py-4">No reports in your district yet.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h3 class="card-title"><i class="bi bi-exclamation-triangle-fill me-1"></i> Alerts and watches</h3>
+        <div class="card-tools"><a href="{% url 'outbreak_map' %}" class="btn btn-sm btn-outline-primary">Map</a></div>
+      </div>
+      <div class="card-body d-grid gap-2">
+        {% for a in alerts|slice:":8" %}
+        <div class="alert-item {{ a.level }}-level">
+          <div class="d-flex justify-content-between align-items-start">
+            <strong>{{ a.disease.name }}</strong>{% level_badge a.level %}
+          </div>
+          <div class="small text-secondary">{{ a.district.name }}, {{ a.district.province.name }} &middot; {{ a.current }} this week, usual {{ a.baseline }}</div>
+        </div>
+        {% empty %}
+        <p class="text-secondary mb-0">No district is above its usual level this week.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script id="chart-config" type="application/json">{"url": "{% url 'chart_data' %}"}</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'vendor/chartjs/chart.umd.js' %}"></script>
+<script src="{% static 'js/dashboard.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load ui_tags %}
+{% block title %}Alerts and outbreaks{% endblock %}
+{% block page_title %}Alerts and outbreaks{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active" aria-current="page">Alerts</li>{% endblock %}
+{% block content %}
+<div class="card border-danger mb-3">
+  <div class="card-header">
+    <h3 class="card-title"><i class="bi bi-exclamation-triangle-fill text-danger me-1"></i> Automatic alerts this week</h3>
+    <div class="card-tools"><span class="stat-pill"><i class="bi bi-calendar-check"></i> as of {{ as_of|date:"d M Y" }}</span></div>
+  </div>
+  <div class="card-body p-0 table-responsive">
+    <table class="table mb-0">
+      <thead><tr><th>Level</th><th>Disease</th><th>District</th><th class="text-end">This week</th><th class="text-end">Usual weekly</th><th style="width:210px">Action</th></tr></thead>
+      <tbody>
+      {% for a in alerts %}
+        <tr>
+          <td>{% level_badge a.level %}</td>
+          <td class="fw-semibold">{{ a.disease.name }}</td>
+          <td>{{ a.district.name }} <small class="text-secondary">{{ a.district.province.name }}</small></td>
+          <td class="text-end">{{ a.current }}</td><td class="text-end">{{ a.baseline }}</td>
+          <td>
+            {% if a.declared %}<span class="text-secondary small"><i class="bi bi-check2-circle me-1"></i>Outbreak already declared</span>
+            {% elif can_declare %}<a class="btn btn-sm btn-danger" href="{% url 'outbreak_declare' %}?disease={{ a.disease.pk }}&district={{ a.district.pk }}&level={{ a.level }}"><i class="bi bi-megaphone-fill me-1"></i> Declare outbreak</a>
+            {% else %}<span class="text-secondary small">Officers can declare</span>{% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="text-center text-secondary py-4">No disease is above its usual level this week.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-footer small text-secondary">Alert: this week's cases are at least the disease multiplier times the usual weekly level. Watch: at least 1.5 times. Both need the minimum number of cases set for that disease.</div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title"><i class="bi bi-broadcast me-1"></i> Declared outbreaks</h3>
+    <div class="card-tools">
+      <form method="get" class="d-inline-flex gap-2">
+        <select name="status" class="form-select form-select-sm" onchange="this.form.submit()"><option value="">All statuses</option>
+          {% for value, label in statuses %}<option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+      </form>
+    </div>
+  </div>
+  <div class="card-body p-0 table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr><th>Disease</th><th>District</th><th>Level</th><th>Status</th><th>Started</th><th>Ended</th><th class="text-end">Linked cases</th><th></th></tr></thead>
+      <tbody>
+      {% for o in outbreaks %}
+        <tr>
+          <td class="fw-semibold">{{ o.disease.name }}</td><td>{{ o.district.name }}</td>
+          <td>{% level_badge o.level o.get_level_display %}</td><td>{% level_badge o.status o.get_status_display %}</td>
+          <td>{{ o.start_date|date:"d M Y" }}</td><td>{{ o.end_date|date:"d M Y"|default:"-" }}</td>
+          <td class="text-end">{{ o.case_total }}</td>
+          <td><a href="{% url 'outbreak_detail' o.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8" class="text-center text-secondary py-4">No outbreaks have been declared.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-footer">{% include "partials/pagination.html" %}</div>
+</div>
+{% endblock %}

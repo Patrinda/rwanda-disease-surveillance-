@@ -1,0 +1,52 @@
+{% load static %}<!doctype html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in | Rwanda Disease Surveillance</title>
+  <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
+  <link rel="stylesheet" href="{% static 'vendor/fonts/fonts.css' %}">
+  <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
+  <link rel="stylesheet" href="{% static 'vendor/adminlte/css/adminlte.min.css' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body class="login-page">
+  <main class="login-box">
+    <h1 class="login-logo">
+      <img src="{% static 'img/logo.svg' %}" alt="">
+      Rwanda Disease Surveillance
+      <small>Case reporting and outbreak monitoring</small>
+    </h1>
+    <div class="card">
+      <div class="card-body login-card-body">
+        <p class="login-box-msg">Sign in to start your session</p>
+
+        {% if form.errors %}
+        <div class="alert alert-danger py-2">Wrong username or password. Please try again.</div>
+        {% endif %}
+        {% if next and user.is_authenticated %}
+        <div class="alert alert-warning py-2">Your account cannot open that page.</div>
+        {% endif %}
+
+        <form method="post" action="{% url 'login' %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ next }}">
+          <label class="visually-hidden" for="id_username">Username</label>
+          <div class="input-group mb-3">
+            {{ form.username }}
+            <div class="input-group-text"><span class="bi bi-person-fill"></span></div>
+          </div>
+          <label class="visually-hidden" for="id_password">Password</label>
+          <div class="input-group mb-3">
+            {{ form.password }}
+            <div class="input-group-text"><span class="bi bi-lock-fill"></span></div>
+          </div>
+          <div class="d-grid"><button type="submit" class="btn btn-primary btn-lg">Sign in</button></div>
+        </form>
+        <p class="mt-3 mb-0 text-center"><a href="{% url 'home' %}">Back to the public page</a></p>
+      </div>
+    </div>
+    <p class="text-center text-white mt-3 small opacity-75">Demonstration system with fictional data</p>
+  </main>
+</body>
+</html>
