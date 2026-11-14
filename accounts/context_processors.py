@@ -19,9 +19,9 @@ def navigation(request):
         "alert_count": 0,
     }
     try:
-        from surveillance.alerts import current_alerts
+        from surveillance.alerts import alerts_for_user, current_alerts
 
-        context["alert_count"] = len(current_alerts(min_level="alert"))
+        context["alert_count"] = len(alerts_for_user(current_alerts(min_level="alert"), user))
     except Exception:  # never break a page because of the badge
         pass
     return context

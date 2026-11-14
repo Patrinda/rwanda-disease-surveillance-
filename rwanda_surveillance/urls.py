@@ -16,5 +16,6 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("accounts/", include("accounts.urls")),
     path("locations/", include("locations.urls")),
+    path("", include("forecasting.urls")),
     path("", include("surveillance.urls")),
 ]

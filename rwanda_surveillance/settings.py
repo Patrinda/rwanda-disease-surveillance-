@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     "accounts",
     "locations",
     "surveillance",
+    "forecasting",
 ]
 
 MIDDLEWARE = [

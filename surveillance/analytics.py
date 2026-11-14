@@ -6,6 +6,7 @@ from django.db.models import Count, Q
 from django.db.models.functions import TruncMonth
 from django.utils.dateparse import parse_date
 
+from accounts.permissions import scope_by_district
 from locations.models import District, Province
 
 from .alerts import current_alerts, get_as_of_date
@@ -32,8 +33,11 @@ def parse_filters(params):
     return {"disease": disease, "province": province, "date_from": date_from, "date_to": date_to}
 
 
-def filtered_reports(filters):
+def filtered_reports(filters, user=None):
+    """Reports matching the filters. When a user is given, officers and reporters only get their district."""
     qs = CaseReport.objects.all()
+    if user is not None:
+        qs = scope_by_district(qs, user)
     if filters["disease"]:
         qs = qs.filter(disease=filters["disease"])
     if filters["province"]:
@@ -84,10 +88,10 @@ def monthly_counts(reports, months):
     return [lookup.get(m, 0) for m in months]
 
 
-def chart_payload(filters):
+def chart_payload(filters, user=None):
     """Everything the four dashboard charts need, as plain Python data."""
     as_of = get_as_of_date()
-    reports = filtered_reports(filters)
+    reports = filtered_reports(filters, user)
 
     by_district = list(
         reports.values("district__name").annotate(n=Count("id")).order_by("-n", "district__name")[:10]

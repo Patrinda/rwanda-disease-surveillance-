@@ -116,6 +116,7 @@
           {% if role %}
           <li class="nav-item"><a href="{% url 'dashboard' %}" class="nav-link {% nav_active 'dashboard' %}"><i class="nav-icon bi bi-speedometer2"></i><p>Dashboard</p></a></li>
           <li class="nav-item"><a href="{% url 'outbreak_map' %}" class="nav-link {% nav_active 'outbreak_map' %}"><i class="nav-icon bi bi-map-fill"></i><p>Outbreak map</p></a></li>
+          <li class="nav-item"><a href="{% url 'forecast' %}" class="nav-link {% nav_active 'forecast' %}"><i class="nav-icon bi bi-graph-up-arrow"></i><p>Forecast</p></a></li>
           <li class="nav-item">
             <a href="{% url 'outbreak_list' %}" class="nav-link {% nav_active 'outbreak_list' 'outbreak_detail' 'outbreak_declare' %}">
               <i class="nav-icon bi bi-exclamation-triangle-fill"></i><p>Alerts and outbreaks</p>
@@ -130,6 +131,7 @@
           <li class="nav-item"><a href="{% url 'district_list' %}" class="nav-link {% nav_active 'district_' %}"><i class="nav-icon bi bi-geo-alt-fill"></i><p>Districts</p></a></li>
 
           <li class="nav-header">Administration</li>
+          <li class="nav-item"><a href="{% url 'api_guide' %}" class="nav-link {% nav_active 'api_' %}"><i class="nav-icon bi bi-braces"></i><p>API guide</p></a></li>
           <li class="nav-item"><a href="{% url 'profile' %}" class="nav-link {% nav_active 'profile' %}"><i class="nav-icon bi bi-person-badge-fill"></i><p>My profile</p></a></li>
           {% if user.is_staff %}
           <li class="nav-item"><a href="{% url 'admin:index' %}" class="nav-link"><i class="nav-icon bi bi-gear-fill"></i><p>Django Admin</p></a></li>

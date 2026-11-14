@@ -13,11 +13,12 @@ from django.views import View
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from accounts.permissions import RoleRequiredMixin, can_edit_report, scope_by_district
-from accounts.roles import ADMIN, OFFICER, REPORTER, get_role, has_role
+from accounts.roles import ADMIN, OFFICER, REPORTER, get_role, has_role, user_district
+from forecasting.services import dashboard_forecast
 from locations.models import District, Province
 
 from . import analytics
-from .alerts import current_alerts, get_as_of_date
+from .alerts import alerts_for_user, current_alerts, get_as_of_date
 from .forms import CaseReportForm, DiseaseForm, OutbreakForm, PatientForm
 from .models import CaseReport, Disease, Outbreak, Patient
 
@@ -63,10 +64,10 @@ def dashboard(request):
     if denied:
         return denied
     filters = analytics.parse_filters(request.GET)
-    reports = analytics.filtered_reports(filters)
+    reports = analytics.filtered_reports(filters, request.user)
     numbers = analytics.summary_numbers(reports)
     as_of = get_as_of_date()
-    alerts = current_alerts(as_of=as_of)
+    alerts = alerts_for_user(current_alerts(as_of=as_of), request.user)
     context = {
         "filters": filters,
         "numbers": numbers,
@@ -74,9 +75,12 @@ def dashboard(request):
         "is_stale": as_of != timezone.localdate(),
         "disease_count": Disease.objects.filter(is_active=True).count(),
         "patient_count": scope_by_district(Patient.objects.all(), request.user).count(),
-        "open_outbreaks": Outbreak.objects.filter(status="open").count(),
+        "open_outbreaks": scope_by_district(Outbreak.objects.filter(status="open"), request.user).count(),
         "alerts": alerts,
         "alert_level_count": sum(1 for a in alerts if a["level"] == "alert"),
+        "watch_level_count": sum(1 for a in alerts if a["level"] == "watch"),
+        "forecast": dashboard_forecast(request.user),
+        "scope_district": None if get_role(request.user) == ADMIN else user_district(request.user),
         "recent_reports": scope_by_district(CaseReport.objects.select_related("patient", "disease", "district"), request.user)[:8],
         "diseases": Disease.objects.filter(is_active=True),
         "provinces": Province.objects.all(),
@@ -88,7 +92,7 @@ def chart_data(request):
     denied = _require_role(request)
     if denied:
         return JsonResponse({"error": "Sign in first."}, status=403)
-    return JsonResponse(analytics.chart_payload(analytics.parse_filters(request.GET)))
+    return JsonResponse(analytics.chart_payload(analytics.parse_filters(request.GET), request.user))
 
 
 def outbreak_map(request):

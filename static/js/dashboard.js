@@ -5,6 +5,7 @@
   var config = JSON.parse(document.getElementById("chart-config").textContent);
   var charts = {};
   var lastPayload = null;
+  var lastForecast = null;
 
   // Categorical colours in a fixed order (light and dark steps), plus a grey for "Other".
   var PALETTE = {
@@ -138,6 +139,59 @@
     });
 
     buildTables(p);
+    if (lastForecast) { renderForecast(lastForecast); }
+  }
+
+  // 5. Weekly reports, the model's estimate for weeks it had not seen, and next week's forecast
+  function renderForecast(f) {
+    var t = theme(), colors = PALETTE[t];
+    destroy("forecast");
+    var canvas = document.getElementById("forecastChart");
+    if (!canvas) { return; }
+    var labels = f.labels.concat([f.forecast.label + " (next)"]);
+    var pad = function (arr) { return arr.concat([null]); };
+    var model = f.ends.map(function (end) {
+      var hit = f.backtest.filter(function (b) { return b.label === end; })[0];
+      return hit ? hit.predicted : null;
+    });
+    var forecastLine = f.actual.map(function () { return null; });
+    forecastLine[forecastLine.length - 1] = f.actual[f.actual.length - 1];
+    forecastLine.push(f.has_model ? f.forecast.value : null);
+    var datasets = [{
+      label: "Reports per week", data: pad(f.actual), borderColor: colors[0], backgroundColor: colors[0],
+      borderWidth: 2, tension: 0.25, pointRadius: 3, pointHoverRadius: 5, pointBackgroundColor: colors[0],
+    }];
+    if (model.some(function (v) { return v !== null; })) {
+      datasets.push({
+        label: "Model on unseen weeks", data: pad(model), borderColor: ink(), backgroundColor: ink(), borderWidth: 1.5,
+        borderDash: [5, 4], tension: 0.25, pointRadius: 0, pointHoverRadius: 4,
+      });
+    }
+    if (f.has_model) {
+      datasets.push({
+        label: "Forecast for next week", data: forecastLine, borderColor: colors[1], backgroundColor: colors[1], borderWidth: 2.5,
+        borderDash: [2, 4], tension: 0, pointRadius: forecastLine.map(function (v, i) { return i === forecastLine.length - 1 ? 7 : 0; }),
+        pointHoverRadius: 8, pointBorderColor: surface(), pointBorderWidth: 2,
+      });
+    }
+    charts.forecast = new Chart(canvas, {
+      type: "line",
+      data: { labels: labels, datasets: datasets },
+      options: Object.assign(baseOptions(), {
+        interaction: { mode: "index", intersect: false },
+        plugins: { legend: { position: "bottom", labels: { usePointStyle: true, boxWidth: 8, padding: 14 } } },
+        scales: {
+          x: { grid: { display: false }, border: { display: false }, ticks: { color: ink(), maxRotation: 0, autoSkip: true }, title: { display: true, text: "Week ending", color: ink() } },
+          y: { beginAtZero: true, grid: { color: grid() }, border: { display: false }, ticks: { color: ink(), precision: 0 } },
+        },
+      }),
+    });
+    var rows = f.labels.map(function (l, i) {
+      return [l, f.actual[i], model[i] === null ? "" : model[i], ""];
+    });
+    rows.push([f.forecast.label + " (next)", "", "", f.has_model ? f.forecast.value : ""]);
+    var box = document.getElementById("table-forecast");
+    if (box) { box.innerHTML = table(["Week ending", "Reports", "Model on unseen weeks", "Forecast"], rows); }
   }
 
   // ----- "Table" buttons: the same numbers as a table, for accessibility and printing -----
@@ -176,6 +230,16 @@
         el.innerHTML = '<p class="text-danger text-center mt-5">The chart data could not be loaded.</p>';
       });
     });
+
+  if (config.forecastUrl) {
+    fetch(config.forecastUrl + window.location.search, { credentials: "same-origin", headers: { Accept: "application/json" } })
+      .then(function (response) { return response.json(); })
+      .then(function (payload) { lastForecast = payload; renderForecast(payload); })
+      .catch(function () {
+        var wrap = document.querySelector("#forecastChart");
+        if (wrap) { wrap.parentElement.innerHTML = '<p class="text-danger text-center mt-5">The forecast data could not be loaded.</p>'; }
+      });
+  }
 
   new MutationObserver(function () { if (lastPayload) { render(lastPayload); } })
     .observe(document.documentElement, { attributes: true, attributeFilter: ["data-bs-theme"] });

@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Forecast{% endblock %}
+{% block page_title %}Forecast{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Forecast</li>{% endblock %}
+
+{% block content %}
+<div class="dash">
+
+  <form method="get" class="card dash-toolbar">
+    <div class="card-body">
+      <div class="tb-field">
+        <label for="f-disease">Disease</label>
+        <select name="disease" id="f-disease" class="form-select">
+          <option value="">All diseases</option>
+          {% for d in diseases %}<option value="{{ d.pk }}" {% if filters.disease == d.pk|stringformat:"s" %}selected{% endif %}>{{ d.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="tb-field">
+        <label for="f-province">Province</label>
+        <select name="province" id="f-province" class="form-select">
+          <option value="">All provinces</option>
+          {% for p in provinces %}<option value="{{ p.pk }}" {% if filters.province == p.pk|stringformat:"s" %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="tb-field">
+        <label for="f-risk">Alert chance</label>
+        <select name="risk" id="f-risk" class="form-select">
+          <option value="">Any</option>
+          <option value="high" {% if filters.risk == "high" %}selected{% endif %}>High (50% or more)</option>
+          <option value="moderate" {% if filters.risk == "moderate" %}selected{% endif %}>Moderate (20% to 49%)</option>
+        </select>
+      </div>
+      <div class="tb-actions">
+        <button class="btn btn-primary" type="submit">Apply</button>
+        <a class="btn btn-outline-secondary" href="{% url 'forecast' %}">Reset</a>
+      </div>
+      <div class="tb-asof">
+        {% if latest %}<span class="text-secondary">Forecast for</span> <strong>{{ rows.0.week_start|date:"d M" }} to {{ rows.0.week_end|date:"d M Y" }}</strong>{% endif %}
+      </div>
+    </div>
+  </form>
+
+  <div class="row g-3">
+    <div class="col-xl-8">
+      <div class="card h-100">
+        <div class="card-header">
+          <div><h3 class="card-title">Next week by district and disease</h3><p class="card-sub">Sorted by the chance of reaching the Alert level. Only the 25 most notable are shown.</p></div>
+          {% if can_declare %}
+          <form method="post" action="{% url 'forecast_refresh' %}">{% csrf_token %}<button class="btn btn-sm btn-outline-primary" type="submit">Refresh forecast</button></form>
+          {% endif %}
+        </div>
+        <div class="card-body p-0 table-responsive">
+          <table class="table table-hover mb-0 align-middle">
+            <thead><tr><th>Disease</th><th>District</th><th class="text-end">This week</th><th class="text-end">Usual</th><th class="text-end">Expected</th><th style="min-width: 150px">Alert chance</th></tr></thead>
+            <tbody>
+            {% for p in rows %}
+              <tr>
+                <td class="fw-semibold">{{ p.disease.name }}</td>
+                <td>{{ p.district.name }}</td>
+                <td class="text-end">{{ p.recent_cases }}</td>
+                <td class="text-end">{{ p.usual_level|floatformat:1 }}</td>
+                <td class="text-end">{{ p.expected_cases|floatformat:1 }}</td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="risk-bar flex-fill"><span class="risk-{{ p.risk }}" style="width: {{ p.probability_percent }}%"></span></div>
+                    <span class="risk-pct risk-{{ p.risk }}" style="min-width: 2.6rem; text-align: right">{{ p.probability_percent }}%</span>
+                  </div>
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="6" class="text-center text-secondary py-4">{% if run %}Nothing matches these filters.{% else %}No model yet. Run <code>python manage.py train_model</code>.{% endif %}</td></tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="card-footer text-secondary">Expected is the model's estimate of reports in the week. Alert chance is the probability that the week reaches the Alert level (disease multiplier times the usual weekly level, and at least the disease minimum).</div>
+      </div>
+    </div>
+
+    <div class="col-xl-4">
+      <div class="d-flex flex-column gap-3 h-100">
+        <div class="card">
+          <div class="card-header"><div><h3 class="card-title">Model</h3><p class="card-sub">What was trained and how it scored</p></div>{% if run %}<span class="source-tag">{{ run.version }}</span>{% endif %}</div>
+          <div class="card-body">
+            {% if run %}
+            <ul class="plain-list spaced">
+              <li><span>Method</span><span class="num">Gradient boosting</span></li>
+              <li><span>Trained on</span><span class="num">{{ run.history_start|date:"d M Y" }} to {{ run.history_end|date:"d M Y" }}</span></li>
+              <li><span>Data</span><span class="num">{{ run.data_source }}</span></li>
+              <li><span>Checked on</span><span class="num">last {{ run.test_weeks }} unseen weeks</span></li>
+              <li><span>Poisson deviance</span><span class="num">{{ run.deviance|floatformat:3 }} vs {{ run.baseline_deviance|floatformat:3 }}</span></li>
+              <li><span>Alert ranking (AUC)</span><span class="num">{{ run.alert_auc|floatformat:2 }} vs {{ run.baseline_auc|floatformat:2 }}</span></li>
+              <li><span>National weekly error</span><span class="num">{{ run.national_mae|floatformat:1 }} vs {{ run.national_baseline_mae|floatformat:1 }}</span></li>
+            </ul>
+            <p class="foot-note">Each score is the model first, then the simple rule &ldquo;next week equals this week&rdquo;. Lower deviance and a higher AUC are better. The model beats the simple rule for single districts and diseases and for ranking alerts, but it is less accurate for the national weekly total when a sudden surge appears that it has not seen before.</p>
+            {% else %}
+            <p class="text-secondary mb-0">No model trained yet.</p>
+            {% endif %}
+          </div>
+        </div>
+        <div class="card flex-fill">
+          <div class="card-header"><div><h3 class="card-title">Weather</h3><p class="card-sub">Last 7 days</p></div>{% if weather %}<span class="source-tag {% if weather.synthetic %}is-synthetic{% endif %}">{{ weather.label }}</span>{% endif %}</div>
+          <div class="card-body">
+            {% if weather %}
+            <div class="stat-pair">
+              <div><span class="stat-big">{{ weather.rain_mm }}<small> mm</small></span><span class="stat-cap">rain per district</span></div>
+              <div><span class="stat-big">{{ weather.temp_c }}<small> &deg;C</small></span><span class="stat-cap">average temperature</span></div>
+            </div>
+            <p class="foot-note">Rainfall and temperature come from the Open-Meteo API. On this fictional data they did not improve the forecast, so the deployed model leaves them out. They are kept for the dashboard and can be switched on with <code>train_model --with-weather</code>.</p>
+            {% else %}
+            <p class="text-secondary mb-0">No weather loaded. Run <code>python manage.py fetch_weather</code>.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div><h3 class="card-title">Latest reports received</h3><p class="card-sub">New reports, from the web form or the API, update the forecast straight away</p></div><a class="btn btn-sm btn-outline-primary" href="{% url 'api_guide' %}">API guide</a></div>
+    <div class="card-body p-0 table-responsive">
+      <table class="table table-hover mb-0">
+        <thead><tr><th>Received</th><th>Patient</th><th>Disease</th><th>District</th><th class="text-end">Report date</th></tr></thead>
+        <tbody>
+        {% for r in incoming %}
+          <tr><td>{{ r.created_at|date:"d M Y, H:i" }}</td><td>{{ r.patient.full_name }}</td><td>{{ r.disease.name }}</td><td>{{ r.district.name }}</td><td class="text-end">{{ r.date_reported|date:"d M Y" }}</td></tr>
+        {% empty %}
+          <tr><td colspan="5" class="text-center text-secondary py-4">No reports yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

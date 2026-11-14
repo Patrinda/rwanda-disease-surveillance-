@@ -99,3 +99,13 @@ def current_alerts(as_of=None, min_level="watch", disease=None):
         )
     alerts.sort(key=lambda a: (-LEVEL_ORDER[a["level"]], -a["current"], a["disease"].name))
     return alerts
+
+
+def alerts_for_user(alerts, user):
+    """National administrators see every alert; other roles only see alerts in their own district."""
+    from accounts.roles import ADMIN, get_role, user_district
+
+    if get_role(user) == ADMIN:
+        return alerts
+    district = user_district(user)
+    return [a for a in alerts if district is not None and a["district"].pk == district.pk]
