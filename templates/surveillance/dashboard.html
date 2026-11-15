@@ -42,9 +42,6 @@
       </div>
     </div>
   </form>
-  {% if is_stale %}
-  <p class="dash-note">The newest report is older than a week, so the dashboard shows the week that ends on that date. Run <code>python manage.py seed_demo --reset</code> or <code>python manage.py simulate_incoming</code> to bring the data up to today.</p>
-  {% endif %}
 
   <!-- Alert strip -->
   {% if alert_level_count %}
